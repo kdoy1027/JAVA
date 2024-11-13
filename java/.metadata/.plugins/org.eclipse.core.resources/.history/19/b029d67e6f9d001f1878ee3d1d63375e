@@ -1,0 +1,57 @@
+package ch17;
+
+import java.util.HashMap;
+import java.util.Scanner;
+
+class Student {
+	String subject;
+	String studentid;
+	String scoreAvg;
+	
+	public Student (String subject, 
+					String studentid, String scoreAvg) {
+		subject = this.subject;
+		studentid = this.studentid;
+		scoreAvg = this.scoreAvg;
+	}
+	
+	
+	getSubject
+	
+}
+
+
+
+public class StudentInfo {
+
+	public static void main(String[] args) {
+		HashMap<String, Student> a = new HashMap<String, Student>();
+		
+		Scanner sc = new Scanner(System.in);
+		System.out.println("학생 이름, 학과, 학번, 학점 평균을 입력하세요 :  >>>> ");
+		String name = sc.next();
+		String subject = sc.next();
+		String studentid = sc.next();
+		String scoreAvg = sc.next();
+		
+		a.put(name, new Student(subject,studentid,scoreAvg));
+		
+		while (true) {
+			System.out.println("학생이름 >>>>");
+			String namesearch = sc.next();
+			if(name.equals(namesearch)) {
+				break;
+			}
+			Student student = a.get(name);
+			if(student == null) {
+				System.out.println(namesearch + "는 없는 사람입니다.");
+			}else {
+				System.out.println("이름 : " + namesearch + "\n" + "학과" + student.getSubject() + "\n" + "");
+			}
+		}
+		
+		
+
+	}
+
+}

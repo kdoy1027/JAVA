@@ -1,0 +1,42 @@
+import java.awt.Component;
+import java.awt.EventQueue;
+
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+
+import java.awt.Font;
+import javax.swing.JTextField;
+import javax.swing.table.DefaultTableModel;
+
+import javax.swing.JButton;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.awt.event.ActionEvent;
+import javax.swing.JTextArea;
+
+
+public class StudentGradeFrame {
+
+	JFrame frame;
+	private JTextArea txtAreaLog_1;
+	private static GradeDAO dao;
+	private Component currentComponent;
+	
+	private JTable table;
+	private String[] colNames = {"학번", "학년", "이름", "국어", "수학", "영어" , " 평균", "석차"};
+	private Object[] records = new Object[colNames.length];
+	private DefaultTableModel tableModel;
+	
+	
+	// [JAVA]성적 관리 프로그램 part 4 26일차 Student 
+	
+	
+}

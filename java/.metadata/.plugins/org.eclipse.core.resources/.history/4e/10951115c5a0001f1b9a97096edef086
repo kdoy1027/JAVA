@@ -1,0 +1,143 @@
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Vector;
+
+public class Server_Back extends Thread {
+
+	Vector<ReceiveInfo> ClientList = new Vector<ReceiveInfo>();
+	ArrayList<String> NickNameList = new ArrayList<String>();
+	ServerSocket serversocket;
+	Socket socket;
+	private Server_ChatGUI serverchatgui;
+	
+	public void setGUI(Server_ChatGUI serverchatgui) {
+		this.serverchatgui = serverchatgui;
+	}
+	
+	public void Start_Server(int Port) {
+		try {
+			Collections.synchronizedList(ClientList);
+			serversocket = new ServerSocket(Port);
+			System.out.println("현재 아이피와 포트넘버는 [" + InetAddress.getLocalHost() + "],  [" + Port + "] 입니다.");       
+		}catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
+	
+	public void run() {
+		try {
+			NickcNameList.add("Admin");
+			while(true) {
+				System.out.println("새 접속을 대기합니다...");
+				socket = serversocket.accept();
+				System.out.println("[" + socket.getInetAddress() + "]에서 접속하셨습니다.");
+				ReceiveInfo receive = new ReceiveInfo(socket);
+				ClientList.add(receive);
+				receive.start();
+			}
+			
+			
+		}catch(Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
+	
+	public void Transmitall(String Message) {
+		for (int i = 0; i < ClientList.size(); i ++) {
+			try {
+				// ClientList의 객체 요소들을 하나하나 꺼내서 ri 객체에 담음.
+				ReceiveInfo ri = ClientList.elementAt(i);
+				// 담은 내용(객체)를 메세지로 보냄.
+				ri.Transmit(Message);
+			}catch(Exception e) {
+				System.out.println(e.getMessage());
+			}
+		}
+	}
+	
+	public void removeClient(ReceiveInfo Client, String NickName) {
+		// 퇴장한 유저(Client) 발생하면 목록에서 삭제
+		ClientList.removeElement(Client);
+		//퇴장한 클라이언트의 닉네임(NickName)을 NickNameList에서 제거합니다. 이는 UI에서 해당 클라이언트를 표시하지 않게 하기 위한 작업입니다.
+		NickNameList.remove(NickName);
+		// 클라이언트의 닉네임이 정상적으로 삭제되었다는 메시지를 콘솔에 출력
+		System.out.println(NickName + "을 삭제 완료했습니다.");
+		// 사용자 목록 초기화
+		serverchatgui.UserList.setText(null);
+		// 퇴장한 Client 제외하고 새로운 사용자 목록 업데이트
+		serverchatgui.AppendUserList(NickNameList);
+	}
+	
+	// ReceiveInfo 클래스
+	class ReceiveInfo extends Thread {
+		private DataInputStream in;
+		private DataOutputStream out;
+		String NickName;
+		String Message;
+		
+		public ReceiveInfo(Socket socket) {
+			try {
+				out = new DataOutputStream(socket.getOutputStream()); // Output
+				in = new DataInputStream(socket.getInputStream()); // Input
+				NickName = in.readUTF();
+				NickNameList.add(NickName);
+			} catch (IOException e) {
+				System.out.println(e.getMessage());
+			}
+		}
+		
+		public void run() {
+			try {
+				// 새로운 유저 발생시 유저목록을 초기화 합니다.
+				// 후에 새롭게 유저목록을 입력해줍니다.
+				// 또한, 새로운 유저가 입장했음을 모든 클라이언트에게 전송합니다.
+				serverchatgui.UserList.setText(null); 
+				serverchatgui.AppendUserList(NickNameList);
+				Transmitall(NickName + "님이 입장하셨습니다.\n");
+				for (int i = 0; i < NickNameList.size(); i++) {
+					// +++닉네임의시작+++은 해당 값이 닉네임임을 알게해주는 식별자이며
+					// 실전에서는 더욱 암호화된 값을 적용시켜 혼동 발생을 막아줍니다.
+					Transmitall("+++닉네임의시작+++" + NickNameList.get(i));
+				}
+				serverchatgui.AppendMessage(NickName + "님이 입장하셨습니다.\n");
+				while (true) {
+					Message = in.readUTF();
+					serverchatgui.AppendMessage(Message);
+					Transmitall(Message);
+				}
+			} catch (Exception e) {
+				// 유저가 접속을 종료하면 여기서 오류가 발생합니다.
+				// 따라서 발생한 값을 다시 모든 클라이언트 들에게 전송시켜줍니다.
+				System.out.println(NickName + "님이 퇴장하셨습니다.");
+				removeClient(this, NickName);
+				Transmitall(NickName + "님이 퇴장하셨습니다.\n");
+				for (int i = 0; i < NickNameList.size(); i++) {
+					Transmitall("+++닉네임의시작+++" + NickNameList.get(i));
+				}
+				serverchatgui.AppendMessage(NickName + "님이 퇴장하셨습니다.\n");
+			}
+		}
+		
+		
+		
+		
+		public void Transmit(String Message) {
+			try {
+				out.writeUTF(Message);
+				out.flush();
+			} catch (Exception e) {
+				e.getStackTrace();
+			}
+			
+		}
+		
+	
+	}
+	
+}

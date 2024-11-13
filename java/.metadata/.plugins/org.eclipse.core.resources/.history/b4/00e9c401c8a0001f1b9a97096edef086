@@ -1,0 +1,117 @@
+package play;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.net.*;
+
+public class OmokClient {
+    private static final int PORT = 12345;  // 서버 포트 번호
+    private static String serverIP = "192.168.0.21";  // 여기에 서버 IP 주소를 입력 (내 컴퓨터의 IP 주소)
+    private static Socket socket;
+    private static PrintWriter out;
+    private static BufferedReader in;
+    private static JFrame frame;
+    private static JButton[][] board;
+    private static boolean myTurn = false;
+    private static String playerMark = "X";  // "X" 플레이어가 먼저 시작
+    private static String opponentMark = "O";
+
+    public static void main(String[] args) {
+        try {
+            // 서버와 연결
+            connectToServer(serverIP, PORT);
+            
+            // 게임 UI 설정
+            setupGameUI();
+        } catch (IOException e) {
+            System.out.println("서버에 연결할 수 없습니다: " + e.getMessage());
+            System.exit(1);
+        }
+    }
+
+    private static void connectToServer(String serverIP, int port) throws IOException {
+        socket = new Socket(serverIP, port);
+        out = new PrintWriter(socket.getOutputStream(), true);
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+        // 게임 UI를 클라이언트가 접속한 후에 바로 띄운다.
+        setupGameUI();
+        
+        // 게임 시작 전에 플레이어의 마크를 설정
+        playerMark = in.readLine();  // 서버에서 보내주는 첫 번째 메시지로 마크 설정
+        opponentMark = playerMark.equals("X") ? "O" : "X";
+        System.out.println("당신의 마크: " + playerMark);
+
+        // 게임 턴을 기다리는 스레드 시작
+        new Thread(new GameListener()).start();
+    }
+
+
+    private static void setupGameUI() {
+        frame = new JFrame("Omok Game");
+        frame.setSize(400, 400);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new GridLayout(15, 15));
+        
+        board = new JButton[15][15];
+        
+        // 보드 생성
+        for (int i = 0; i < 15; i++) {
+            for (int j = 0; j < 15; j++) {
+                board[i][j] = new JButton();
+                board[i][j].setPreferredSize(new Dimension(30, 30));
+                board[i][j].setBackground(Color.WHITE);
+                board[i][j].setOpaque(true);
+                board[i][j].setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                board[i][j].addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        JButton buttonClicked = (JButton) e.getSource();
+                        int row = -1, col = -1;
+                        outer: for (int i = 0; i < 15; i++) {
+                            for (int j = 0; j < 15; j++) {
+                                if (board[i][j] == buttonClicked) {
+                                    row = i;
+                                    col = j;
+                                    break outer;
+                                }
+                            }
+                        }
+                        if (myTurn && board[row][col].getText().equals("")) {
+                            board[row][col].setText(playerMark);
+                            out.println(row + "," + col);
+                            myTurn = false;
+                        }
+                    }
+                });
+                frame.add(board[i][j]);
+            }
+        }
+        
+        frame.setVisible(true);
+    }
+
+    private static class GameListener implements Runnable {
+        @Override
+        public void run() {
+            try {
+                while (true) {
+                    // 서버에서 보낸 메시지를 기다림
+                    String message = in.readLine();
+                    if (message.startsWith("YOUR_TURN")) {
+                        myTurn = true;
+                    } else if (message.startsWith("OPPONENT_MOVE")) {
+                        String[] coords = message.split(",")[1].split(",");
+                        int row = Integer.parseInt(coords[0]);
+                        int col = Integer.parseInt(coords[1]);
+                        board[row][col].setText(opponentMark);
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
